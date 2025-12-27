@@ -4,10 +4,10 @@ name: Test and Deploy
 on:
   # При пуше в ветку main
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   # При создании pull request в ветку main
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 permissions:
   contents: write
@@ -15,9 +15,12 @@ permissions:
   id-token: write
 
 jobs:
-  # Задача линтера
+  # Задача линтера для frontend
   eslint:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
     permissions:
       contents: read
 
@@ -30,62 +33,65 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.17.0'  # Конкретная версия Node.js для стабильности
-          cache: 'yarn'  # Кэширование yarn зависимостей для ускорения
+          node-version: "20.17.0" # Конкретная версия Node.js для стабильности
+          cache: "npm" # Кэширование npm зависимостей для ускорения
+          cache-dependency-path: ./frontend/package-lock.json
 
       # Шаг 3: Установка зависимостей
-      - name: Install dependencies
-        run: yarn install # Используем ci для чистых установок в CI/CD
+      - name: Install frontend dependencies
+        run: npm ci
 
       # Шаг 4: Запуск eslint
       - name: Run eslint
-        run: yarn lint
+        run: npm run lint
 
-  # Задача сборки и деплоя (запускается только после успешного тестирования)
-  build-and-deploy:
-    name: Build and Deploy
+  # Задача сборки frontend и деплоя на GitHub Pages (запускается только после успешного тестирования)
+  deploy-frontend:
+    name: Build and Deploy Frontend
     runs-on: ubuntu-latest
-    needs: [eslint]  # Зависимость: выполняется только если задача eslint успешна
+    defaults:
+      run:
+        working-directory: ./frontend
+    needs: [eslint] # Зависимость: выполняется только если задачи успешны
     # Условие: запускать только при пуше в main ветку (не при PR)
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
       pages: write
       id-token: write
-    
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-    # Шаг 1: Получение кода (повторно для чистого состояния)
-    - name: Checkout code
-      uses: actions/checkout@v4
+      # Шаг 1: Получение кода (повторно для чистого состояния)
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    # Шаг 2: Настройка Node.js (аналогично задаче test)
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.17.0'
-        cache: 'yarn'
+      # Шаг 2: Настройка Node.js (аналогично задаче test)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.17.0"
+          cache: "npm"
+          cache-dependency-path: ./frontend/package-lock.json
 
-    # Шаг 3: Установка зависимостей
-    - name: Install dependencies
-      run: yarn install
+      # Шаг 3: Установка зависимостей
+      - name: Install dependencies
+        run: npm ci
 
-    # Шаг 4: Сборка проекта для production
-    - name: Build project
-      run: yarn build:prod
+      # Шаг 4: Сборка проекта для production
+      - name: Build project
+        run: npm run build:prod
 
-    - name: Setup Pages
-      uses: actions/configure-pages@v4      
+      # Шаг 5: Настройка GitHub Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
 
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: ./build
+      # Шаг 6: Загрузка артефакта для GitHub Pages
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./frontend/build
 
-    # Шаг 5: Деплой на GitHub Pages
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
+      # Шаг 7: Деплой на GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
