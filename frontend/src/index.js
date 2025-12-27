@@ -3,4 +3,4 @@ import GalleryManager from './js/GalleryManager';
 import ImageApp from './js/ImageApp';
 
 const galleryManager = new GalleryManager(document.getElementById('gallery'));
-const imageApp = new ImageApp(galleryManager);
+new ImageApp(galleryManager);

@@ -1,5 +1,4 @@
 import ApiService from './ApiService.js';
-import File from './File.js';
 
 export default class ImageApp {
   constructor(galleryManager) {
